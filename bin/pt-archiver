@@ -7004,11 +7004,16 @@ sub commit {
    my ( $o, $force ) = @_;
    my $txnsize = $o->get('txn-size');
    if ( $force || ($txnsize && $txn_cnt && $cnt % $txnsize == 0) ) {
-      if ( $o->get('buffer') && $archive_fh ) {
+      if ( $archive_fh ) {
          my $archive_file = $o->get('file');
-         trace('flush', sub {
-            $archive_fh->flush or die "Cannot flush $archive_file: $OS_ERROR\n";
-         });
+         if ( $o->get('buffer') ) {
+            trace('flush', sub {
+               $archive_fh->flush or die "Cannot flush $archive_file: $OS_ERROR\n";
+            });
+         } else {
+            my $atime = my $mtime = time;
+            utime($atime, $mtime, $archive_file) or warn "Cannot touch $archive_file: $OS_ERROR\n";
+         }
       }
       if ( $dst ) {
          trace('commit', sub {
